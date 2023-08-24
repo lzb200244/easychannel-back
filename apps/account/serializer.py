@@ -12,14 +12,17 @@ import redis
 from django_redis import get_redis_connection
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
+
+from apps.account.apps import AccountConfig
 from apps.account.models import UserInfo, Medal
-from apps.chat.models import Room
+from apps.chat.apps import ChatConfig
+from apps.chat.models import GroupRoom
 from consts.errors import ErrorMessageConst
-from enums.const import ChannelRoomEnum, UserEnum, MedalEnum
+from enums.const import Room2GroupEnum, UserEnum, MedalEnum
 from utils.factory.patternFc import Pattern
 
-channel_conn: redis.Redis = get_redis_connection('channel')
-account_conn: redis.Redis = get_redis_connection('account')
+channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
+account_conn: redis.Redis = get_redis_connection(AccountConfig.name)
 
 
 class AccountSerializers(serializers.ModelSerializer):
@@ -76,9 +79,9 @@ class AccountSerializers(serializers.ModelSerializer):
         obj = UserInfo.objects.create_user(**data)
         # 初始用户
         # 加入到默认的大群聊里
-        channel_conn.sadd(ChannelRoomEnum.ROOM_MEMBERS.value % obj.pk, ChannelRoomEnum.DEFAULT_ROOM.value)
+        channel_conn.sadd(Room2GroupEnum.ROOM_MEMBERS.value % obj.pk, Room2GroupEnum.DEFAULT_ROOM.value)
         # 放入到我加入的群聊里
-        account_conn.sadd(UserEnum.JOIN_ROOM.value % obj.pk, ChannelRoomEnum.DEFAULT_ROOM.value)
+        account_conn.sadd(UserEnum.JOIN_GROUP.value % obj.pk, Room2GroupEnum.DEFAULT_ROOM.value)
         # 初始化用户聊天状态
         account_conn.hmset(UserEnum.USER_CHAT_STATUS.value % obj.pk, {
             MedalEnum.THUMB.value: 0,  # 点赞数量
@@ -154,5 +157,5 @@ class MedalSerializers(serializers.ModelSerializer):
 
 class JoinRoomSerializers(serializers.ModelSerializer):
     class Meta:
-        model = Room
+        model = GroupRoom
         fields = ['id', 'name', 'desc', 'create_time', 'type']

@@ -16,6 +16,7 @@ class ErrorMessageConst(Enum):
     USERNAME_EXIST_ERROR = '用户名已存在'
     USERNAME_NOT_EXIST_ERROR = '用户名不存在'
     USER_NOT_LOGIN = '用户未登录'
+    USER_NOT_IN_ROOM = '用户未加入群聊'
     EMAIL_EXIST_ERROR = '邮箱已存在'
     EMAIL_NOT_EXIST_ERROR = '邮箱不存在'
     EMAIL_TYPE_ERROR = '邮箱不符合'
@@ -28,3 +29,6 @@ class ErrorMessageConst(Enum):
 
     # ========================================================================= 分页
     PAGE_NOT_EXIST = '页码不存在'
+
+    # ========================================================================== channel的
+    ROOM_NOT_EXIST = "房间不存在"

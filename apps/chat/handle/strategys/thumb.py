@@ -6,15 +6,14 @@ from django.db.models import F
 from django_redis import get_redis_connection
 
 from apps.account.models import UserInfo
-from apps.chat.models import Record
+from apps.chat.apps import ChatConfig
+from apps.chat.models import GroupRecords
 from apps.chat.typesd.base import BaseRecord
 from apps.chat.typesd.request.thumb import ThumbType, ThumbItem
-from enums.const import RecordEnum, UserEnum, MedalEnum
+from enums.const import Record2GroupEnum, UserEnum, MedalEnum
 from apps.chat.handle.strategy import Strategy
 
-channel_conn: redis.Redis = get_redis_connection('channel')
-
-
+channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
 class ThumbStrategy(Strategy):
     """点赞策略"""
 
@@ -34,7 +33,7 @@ class ThumbStrategy(Strategy):
         # 1. 该条消息记录进行+1操作
         # print(message['msgID'])
         message = content['message']
-        Record.objects.filter(pk=message['msgID']).update(likes=F('likes') + 1)
+        GroupRecords.objects.filter(pk=message['msgID']).update(likes=F('likes') + 1)
 
     def save_to_redis(self, group: Union[int, str], user: UserInfo,
                       content: BaseRecord) -> NoReturn:
@@ -43,7 +42,8 @@ class ThumbStrategy(Strategy):
 
         """
         message = content['message']
-        key = RecordEnum.RECORD_LIKES.value % message['msgID']
+        key = Record2GroupEnum.RECORD_LIKES.value % message['msgID']
+
         has_liked = channel_conn.zscore(key, user.pk)
         # 点赞
         if not has_liked:

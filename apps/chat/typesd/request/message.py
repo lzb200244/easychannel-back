@@ -5,7 +5,7 @@ from apps.chat.typesd.request.base import BaseRecord, BaseUserItem, BaseMessage
 
 class FileInfo(TypedDict):
     fileName: str
-    fileSize: int
+    fileSize: int | float
     filePath: str
 
 

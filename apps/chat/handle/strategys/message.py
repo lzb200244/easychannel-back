@@ -3,12 +3,12 @@ from typing import NoReturn
 from collections import defaultdict
 from apps.account.models import UserInfo
 from apps.chat.handle.strategy import Strategy
-from apps.chat.models import Record, RecordFileInfo
+from apps.chat.models import GroupRecords
 from apps.chat.typesd.request.message import TextMessage, FileMessage
 from apps.chat.typesd.base import BaseRecord
 from apps.chat.typesd.message import TextMessageType, FileMessageType
 from enums.message import PushTypeEnum, MessageTypeEnum
-from enums.const import ChannelRoomEnum, UserEnum, MedalEnum
+from enums.const import Room2GroupEnum, UserEnum, MedalEnum
 from utils.file.filesize import cal_file_size
 from utils.mq.gpt.product import send_message
 from utils.sensitive.tree_plus.prefix import tree_prefix
@@ -52,13 +52,13 @@ class MessageStrategy(Strategy):
         message: TextMessage = content['message']
         # 针对文本类型
         filter_list, pure_content = tree_prefix.replace(message['content'])
-        pure_content=pure_content.strip()
+        pure_content = pure_content.strip()
         # 存在敏感词
         if len(filter_list) > 0:
             # 用户活跃状态更新
             key = UserEnum.USER_CHAT_STATUS.value % user.pk
             self.conn.hincrby(key, MedalEnum.TROLLS.value, 1)  # 骂人次数+1
-        msgObj = Record.objects.create(
+        msgObj = GroupRecords.objects.create(
             type=MessageTypeEnum.TEXT.value,
             content=pure_content,
             user=user,
@@ -87,24 +87,16 @@ class MessageStrategy(Strategy):
         :return:
         """
         message: FileMessage = content['message']
-        fileObj = RecordFileInfo.objects.create(
-            fileName=message['fileInfo']['fileName'],
-            fileSize=cal_file_size(message['fileInfo']['fileSize']),
-            filePath=message['fileInfo']['filePath'],
-        )
-        msgObj = Record.objects.create(
+        fileSize = cal_file_size(message['fileInfo']['fileSize'])
+        message['fileInfo']['fileSize'] = fileSize
+        msgObj = GroupRecords.objects.create(
             type=message['type'],
-            file=fileObj,
+            file=message['fileInfo'],
             user=user,
             room_id=room_id,
-
         )
         return {
-            'fileInfo': {
-                'fileName': fileObj.fileName,
-                'fileSize': fileObj.fileSize,
-                'filePath': fileObj.filePath,
-            },
+            'fileInfo': message['fileInfo'],
             # 文件类型、图片、文件、视频
             'type': message['type'],
             'time': msgObj.create_time.timestamp() * 1000,
@@ -125,9 +117,9 @@ class MessageStrategy(Strategy):
         :param content:
         :return:
         """
-        key = ChannelRoomEnum.ROOM_MESSAGE.value % room_id
+        key = Room2GroupEnum.ROOM_RECORDS.value % room_id
         value = json.dumps(content)
-        self.conn.eval(ChannelRoomEnum.APPEND_POP_LUA.value, 1, key, ChannelRoomEnum.ROOM_MESSAGE_MAX.value, value)
+        self.conn.eval(Room2GroupEnum.APPEND_POP_LUA.value, 1, key, Room2GroupEnum.ROOM_RECORD_MAX.value, value)
 
     def handle_gpt_message(self, room_id: int, user: UserInfo, content: BaseRecord) -> TextMessageType:
         """

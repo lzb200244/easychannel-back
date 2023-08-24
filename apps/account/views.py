@@ -7,10 +7,12 @@ from rest_framework.exceptions import NotAuthenticated, AuthenticationFailed
 from rest_framework.generics import GenericAPIView
 from rest_framework.mixins import CreateModelMixin, UpdateModelMixin, ListModelMixin
 
+from apps.account.apps import AccountConfig
 from apps.account.models import UserInfo, Medal
 from apps.account.serializer import (AccountSerializers, UserInfoSerializers, MedalSerializers, LoginSerializers,
                                      JoinRoomSerializers)
-from apps.chat.models import Room
+from apps.chat.apps import ChatConfig
+from apps.chat.models import GroupRoom
 from consts.errors import ErrorMessageConst
 from enums.const import UserEnum
 from extensions.permissions.IsAuthenticated import CustomIsAuthenticated
@@ -18,8 +20,8 @@ from utils.response.response import APIResponse
 from utils.tencent.cos import get_temp_avatar_credict
 
 logger = logging.getLogger("account")
-account_conn: redis.Redis = get_redis_connection('account')
-
+channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
+account_conn: redis.Redis = get_redis_connection(AccountConfig.name)
 
 class RegisterAPIView(CreateModelMixin, GenericAPIView):
     queryset = UserInfo.objects.all()
@@ -112,8 +114,8 @@ class UserJoinRoomAPIView(GenericAPIView):
 
     def get_queryset(self):
         user_id = self.request.user.pk
-        join_rooms = account_conn.smembers(UserEnum.JOIN_ROOM.value % user_id)
-        return Room.objects.filter(id__in=join_rooms)
+        join_rooms = account_conn.smembers(UserEnum.JOIN_GROUP.value % user_id)
+        return GroupRoom.objects.filter(id__in=join_rooms)
 
     def get(self, request, *args, **kwargs):
         """

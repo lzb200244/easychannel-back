@@ -1,16 +1,16 @@
 import json
-from typing import Union, NoReturn
+from typing import Union
 from collections import defaultdict
 
 from apps.account.models import UserInfo
 from apps.chat.handle.strategy import Strategy
-from apps.chat.models import Record, RecordFileInfo
+from apps.chat.models import GroupRecords
 from apps.chat.typesd.base import BaseRecord, ReplayMessage
 from apps.chat.typesd.replay import TextMessageWithReplayType, ImageMessageWithReplayType
 from enums.message import MessageTypeEnum, PushTypeEnum
-from enums.const import ChannelRoomEnum, UserEnum, MedalEnum
+from enums.const import Room2GroupEnum, UserEnum, MedalEnum
 from utils.file.filesize import cal_file_size
-from utils.mq.gpt.product import send_message, GPTReplay
+from utils.mq.gpt.product import send_message
 from utils.sensitive.tree_plus.prefix import tree_prefix
 
 
@@ -87,7 +87,7 @@ class ReplayStrategy(Strategy):
 
         # 敏感词替换
         filter_list, pure_content = tree_prefix.replace(message['content'])
-        pure_content=pure_content.strip()
+        pure_content = pure_content.strip()
 
         # 更新用户活跃状态
         key = UserEnum.USER_CHAT_STATUS.value % user.pk
@@ -98,7 +98,7 @@ class ReplayStrategy(Strategy):
         self.conn.hincrby(key, MedalEnum.SOLVER.value, 1)
 
         replay: ReplayMessage = message['replay']
-        msgObj = Record.objects.create(
+        msgObj = GroupRecords.objects.create(
             type=message['type'],
             content=pure_content,
             user=user,
@@ -107,7 +107,7 @@ class ReplayStrategy(Strategy):
         )
         try:
             # 构造回复
-            replay_obj = Record.objects.get(pk=replay['msgID'])
+            replay_obj = GroupRecords.objects.get(pk=replay['msgID'])
             replay_msg = self.make_replay(replay_obj)
             return {
                 "content": pure_content,
@@ -123,7 +123,7 @@ class ReplayStrategy(Strategy):
                 "replay": replay_msg
             }
 
-        except Record.DoesNotExist:
+        except GroupRecords.DoesNotExist:
             pass
 
     def save_file_to_mysql(self, group: Union[int, str], user: UserInfo, content: BaseRecord):
@@ -138,14 +138,10 @@ class ReplayStrategy(Strategy):
         key = UserEnum.USER_CHAT_STATUS.value % user.pk
         self.conn.hincrby(key, MedalEnum.SOLVER.value, 1)
         # 入库
-        fileObj = RecordFileInfo.objects.create(
-            fileName=message['fileInfo']['fileName'],
-            fileSize=fileSize,
-            filePath=message['fileInfo']['filePath'],
-        )
-        msgObj = Record.objects.create(
+        message['fileInfo']['fileSize'] = fileSize
+        msgObj = GroupRecords.objects.create(
             type=message['type'],
-            file=fileObj,
+            file=message['fileInfo'],
             user=user,
             room_id=group,
             replay_id=replay['msgID']
@@ -153,17 +149,13 @@ class ReplayStrategy(Strategy):
 
         try:
             # 构造回复
-            replay_obj = Record.objects.get(pk=replay['msgID'])
+            replay_obj = GroupRecords.objects.get(pk=replay['msgID'])
 
             replay_msg = self.make_replay(replay_obj)
             message['replay'] = replay_msg
 
             return {
-                'fileInfo': {
-                    'fileName': fileObj.fileName,
-                    'fileSize': fileObj.fileSize,
-                    'filePath': fileObj.filePath,
-                },
+                'fileInfo': message['fileInfo'],
                 'type': message['type'],
                 'time': msgObj.create_time.timestamp() * 1000,
                 'msgID': msgObj.pk,
@@ -177,15 +169,13 @@ class ReplayStrategy(Strategy):
 
             }
 
-        except Record.DoesNotExist:
+        except GroupRecords.DoesNotExist:
             pass
 
     def save_to_redis(self, group: Union[int, str],
                       content: BaseRecord):
 
         # 获取key
-        key = ChannelRoomEnum.ROOM_MESSAGE.value % group
+        key = Room2GroupEnum.ROOM_RECORDS.value % group
         value = json.dumps(content)
-        self.conn.eval(ChannelRoomEnum.APPEND_POP_LUA.value, 1, key, ChannelRoomEnum.ROOM_MESSAGE_MAX.value, value)
-
-
+        self.conn.eval(Room2GroupEnum.APPEND_POP_LUA.value, 1, key, Room2GroupEnum.ROOM_RECORD_MAX.value, value)

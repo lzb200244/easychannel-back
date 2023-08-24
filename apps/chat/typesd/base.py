@@ -4,7 +4,7 @@ from enums.message import PushTypeEnum, MessageTypeEnum
 
 class FileInfo(TypedDict):
     fileName: str
-    fileSize: int
+    fileSize: Union[int, float]
     filePath: str
 
 

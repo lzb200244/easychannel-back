@@ -3,10 +3,12 @@ import logging
 import redis
 from django_redis import get_redis_connection
 from rest_framework import serializers
+
+from apps.account.apps import AccountConfig
 from enums.const import UserEnum
 from enums.message import PushTypeEnum
 
-account_conn: redis.Redis = get_redis_connection('account')
+account_conn: redis.Redis = get_redis_connection(AccountConfig.name)
 account_logger = logging.getLogger('account')
 
 
@@ -55,7 +57,7 @@ class BaseSerializer(serializers.Serializer):
         :return:
         """
         user = self.context['request'].user
-        if not account_conn.sismember(UserEnum.JOIN_ROOM.value % user.pk, obj):
+        if not account_conn.sismember(UserEnum.JOIN_GROUP.value % user.pk, obj):
             # 记录日志
             info = f"用户{user.pk}并不在{obj}房间"
             account_logger.info(info)

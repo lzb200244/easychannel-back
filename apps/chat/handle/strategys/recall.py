@@ -1,11 +1,11 @@
 import json
 from apps.account.models import UserInfo
 from apps.chat.handle.strategy import Strategy
-from apps.chat.models import Record
+from apps.chat.models import GroupRecords
 from apps.chat.typesd.request.recall import RecallRecord, RecallRecordItem
 from apps.chat.typesd.base import BaseRecord
 from enums.message import PushTypeEnum, MessageTypeEnum
-from enums.const import ChannelRoomEnum, RecordEnum
+from enums.const import Room2GroupEnum, Record2GroupEnum
 
 import datetime
 
@@ -41,7 +41,7 @@ class RecallStrategy(Strategy):
         :return:
         """
         cause = f'{datetime.datetime.now().strftime("%H:%M:%S ")} {user.name} 撤销了一条消息'
-        Record.objects.filter(pk=message['msgID']).update(
+        GroupRecords.objects.filter(pk=message['msgID']).update(
             isDrop=True,
             drop=cause)
         return {
@@ -64,7 +64,7 @@ class RecallStrategy(Strategy):
         """
         cause = f'{datetime.datetime.now().strftime("%H:%M:%S ")} {user.name} 撤销了一条消息'
         # 撤销直接删除
-        Record.objects.filter(pk=message['msgID']).update(
+        GroupRecords.objects.filter(pk=message['msgID']).update(
             isDrop=True,
             drop=cause)
         return {
@@ -83,7 +83,7 @@ class RecallStrategy(Strategy):
         # key = file.fileName
 
     def delete_form_redis(self, group, content: BaseRecord, ):
-        key = ChannelRoomEnum.ROOM_MESSAGE.value % group
+        key = Room2GroupEnum.ROOM_RECORDS.value % group
         length = self.conn.llen(key)
         # 撤销非删除，且记录撤销时间和操作人
         for i in range(length):
@@ -96,4 +96,4 @@ class RecallStrategy(Strategy):
                 self.conn.rpush(key, json.dumps(content))
         # 删除该条记录所有在redis的信息
         # 1. 点赞记录
-        self.conn.delete(RecordEnum.RECORD_LIKES.value % content['message']['msgID'])
+        self.conn.delete(Record2GroupEnum.RECORD_LIKES.value % content['message']['msgID'])

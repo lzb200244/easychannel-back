@@ -1,8 +1,11 @@
+import datetime
 import os
 
 from channels.layers import get_channel_layer
 
 from EasyChannel.settings.base import *
+from apps.account.apps import AccountConfig
+from apps.chat.apps import ChatConfig
 
 BASE_DIR = BASE_DIR.parent
 # ##########################################channels配置
@@ -78,7 +81,7 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # ############################### Redis配置
-CATCH_LIST = ['default', 'channel', 'account']
+CATCH_LIST = ['default', ChatConfig.name, AccountConfig.name]
 
 
 def redis_conf(index):

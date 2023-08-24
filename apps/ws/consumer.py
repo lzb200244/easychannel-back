@@ -4,14 +4,17 @@ import redis
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from django_redis import get_redis_connection
 
+from apps.account.apps import AccountConfig
 from apps.account.models import UserInfo
-from enums.const import ChannelRoomEnum, UserEnum
+from apps.chat.apps import ChatConfig
+from enums.const import Room2GroupEnum, UserEnum
 from apps.chat.typesd.base import BaseRecord
 from apps.chat.typesd.push import PushType
 from enums.message import PushTypeEnum
 
-channel_conn: redis.Redis = get_redis_connection('channel')
-account_conn: redis.Redis = get_redis_connection('account')
+
+channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
+account_conn: redis.Redis = get_redis_connection(AccountConfig.name)
 logger = logging.getLogger('chat')
 
 
@@ -36,15 +39,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         await self.accept()
 
         # 2. 加入群聊
-        room = ChannelRoomEnum.ROOM.value % self.get_group
+        room = Room2GroupEnum.ROOM.value % self.get_group
         await self.channel_layer.group_add(room, self.channel_name)
         # 1.判断是否存在该群聊
-        if not channel_conn.sismember(ChannelRoomEnum.ROOMS.value, self.get_group):
+        if not channel_conn.sismember(Room2GroupEnum.ROOMS.value, self.get_group):
             await self.close()
             return
         # 2.用户是否在群聊里
         if self.user:
-            if not account_conn.sismember(UserEnum.JOIN_ROOM.value % self.user.pk, self.get_group):
+            if not account_conn.sismember(UserEnum.JOIN_GROUP.value % self.user.pk, self.get_group):
                 await self.close()
                 return
             # 4. 放入redis实现当前群聊的在线情况=》set
@@ -52,12 +55,12 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
             # 5. 上线推送
             await self.push(PushTypeEnum.ONLINE_PUSH)
         else:
-            if self.get_group != ChannelRoomEnum.DEFAULT_ROOM.value:
+            if self.get_group != Room2GroupEnum.DEFAULT_ROOM.value:
                 await self.close()
                 return
 
     async def disconnect(self, code):
-        room = ChannelRoomEnum.ROOM.value % self.get_group
+        room = Room2GroupEnum.ROOM.value % self.get_group
         # 退出群聊
         await self.channel_layer.group_discard(room, self.channel_name)
 
@@ -78,15 +81,15 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
         :return:
         """
         # 当前在线人数
-        channel_conn.sadd(ChannelRoomEnum.ROOM_ONLINE_MEMBERS.value % self.get_group, self.user.pk)
+        channel_conn.sadd(Room2GroupEnum.ROOM_ONLINE_MEMBERS.value % self.get_group, self.user.pk)
 
-        channel_conn.sadd(ChannelRoomEnum.ROOM_ONLINE_MEMBERS.value % self.get_group, self.user.pk)
+        channel_conn.sadd(Room2GroupEnum.ROOM_ONLINE_MEMBERS.value % self.get_group, self.user.pk)
         # 添加到集合历史人数
-        channel_conn.sadd(ChannelRoomEnum.ROOM_MEMBERS.value % self.get_group, self.user.pk)
+        channel_conn.sadd(Room2GroupEnum.ROOM_MEMBERS.value % self.get_group, self.user.pk)
 
     def remove_user_from_status(self):
         """在线人数-1"""
-        channel_conn.srem(ChannelRoomEnum.ROOM_ONLINE_MEMBERS.value % self.get_group, self.user.pk)
+        channel_conn.srem(Room2GroupEnum.ROOM_ONLINE_MEMBERS.value % self.get_group, self.user.pk)
 
     async def push(self, tp: PushTypeEnum):
         """
@@ -99,7 +102,7 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
                                  'roomID': self.get_group,
                                  'user': {'userID': self.user.pk, 'username': self.user.name,
                                           'avatar': self.user.avatar, 'isActive': True, }}  # 当前状态改为True
-        room = ChannelRoomEnum.ROOM.value % self.get_group
+        room = Room2GroupEnum.ROOM.value % self.get_group
         await self.channel_layer.group_send(
             room,
             {

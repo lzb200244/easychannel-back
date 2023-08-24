@@ -12,8 +12,10 @@ import logging
 import redis
 
 from django_redis import get_redis_connection
-from apps.chat.models import Record
-from enums.const import UserEnum, ChannelRoomEnum, MQEnum
+
+from apps.chat.apps import ChatConfig
+from apps.chat.models import GroupRecords
+from enums.const import UserEnum, Room2GroupEnum, MQEnum
 from enums.message import MessageTypeEnum, PushTypeEnum
 from utils.broadcast.main import broadcast
 from utils.gpt.single import GPT
@@ -21,7 +23,7 @@ from utils.mq.conn.conn import channel
 from utils.mq.gpt.product import GPTReplay
 from utils.mq.tasks.base import BackgroundTask, RegisterTask
 
-conn: redis.Redis = get_redis_connection('channel')
+channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
 
 logger = logging.getLogger('chat')
 
@@ -38,7 +40,7 @@ def callback(ch, method, properties, body: bytes):
             # 1. 调用gpt
             results = GPT.chat(message['content'])
         # 2. 存储到mysql
-        msgObj = Record.objects.create(
+        msgObj = GroupRecords.objects.create(
             type=MessageTypeEnum.TEXT.value,
             content=results.get('result'),
             user_id=UserEnum.GPT_ID.value,
@@ -72,11 +74,11 @@ def callback(ch, method, properties, body: bytes):
             }
         }
         # 存储到redis
-        key = ChannelRoomEnum.ROOM_MESSAGE.value % message.get('roomID')
+        key = Room2GroupEnum.ROOM_RECORDS.value % message.get('roomID')
         value = json.dumps(content)
-        conn.eval(ChannelRoomEnum.APPEND_POP_LUA.value, 1, key, ChannelRoomEnum.ROOM_MESSAGE_MAX.value, value)
+        channel_conn.eval(Room2GroupEnum.APPEND_POP_LUA.value, 1, key, Room2GroupEnum.ROOM_RECORD_MAX.value, value)
         # 4. 进行广播
-        room = ChannelRoomEnum.ROOM.value % message.get('roomID')
+        room = Room2GroupEnum.ROOM.value % message.get('roomID')
 
         broadcast(room, content)
         # 5. 手动回复ack
@@ -100,4 +102,3 @@ class ConsumerGpt(BackgroundTask):
 
 
 register = RegisterTask()
-

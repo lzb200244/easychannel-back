@@ -1,14 +1,18 @@
 import redis
 from django_redis import get_redis_connection
 from rest_framework import serializers
+from rest_framework.exceptions import NotFound, PermissionDenied
 
+from apps.account.apps import AccountConfig
 from apps.account.models import UserInfo
-from enums.const import ChannelRoomEnum, UserEnum
-from apps.chat.models import Record, Room
+from apps.chat.apps import ChatConfig
+from consts.errors import ErrorMessageConst
+from enums.const import Room2GroupEnum, UserEnum
+from apps.chat.models import GroupRecords, GroupRoom
 from enums.message import PushTypeEnum, MessageTypeEnum
 
-channel_conn: redis.Redis = get_redis_connection('channel')
-account_conn: redis.Redis = get_redis_connection('account')
+channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
+account_conn: redis.Redis = get_redis_connection(AccountConfig.name)
 
 
 class RecordUserSerializers(serializers.ModelSerializer):
@@ -28,7 +32,7 @@ class RecordSerializers(serializers.ModelSerializer):
     user = RecordUserSerializers()  # 嵌套的子序列化器
 
     class Meta:
-        model = Record
+        model = GroupRecords
         fields = ['message', 'user', 'type']
 
     def get_type(self, obj):
@@ -59,11 +63,7 @@ class RecordSerializers(serializers.ModelSerializer):
             base.update(msg)
         elif replay.type == MessageTypeEnum.IMAGE.value:
             msg = {
-                'fileInfo': {
-                    'fileName': replay.file.fileName,
-                    'fileSize': replay.file.fileSize,
-                    'filePath': replay.file.filePath,
-                }
+                'fileInfo': replay.file
             }
             base.update(msg)
         return base
@@ -109,7 +109,7 @@ class CreateChatRoomSerializers(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
 
     class Meta:
-        model = Room
+        model = GroupRoom
         fields = ['id', 'createTime', 'creator', 'password', 'desc', 'type', 'isPublic', 'name']
 
     def get_creator(self, obj):
@@ -121,20 +121,20 @@ class CreateChatRoomSerializers(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
-        instance = Room.objects.create(
+        instance = GroupRoom.objects.create(
             creator=self.context['request'].user,
             **validated_data
         )
         # 初始化群聊
         # 加入到现有群聊里
-        channel_conn.sadd(ChannelRoomEnum.ROOMS.value, instance.pk)
+        channel_conn.sadd(Room2GroupEnum.ROOMS.value, instance.pk)
         # 加入创建者的已入群聊集合
-        account_conn.sadd(UserEnum.JOIN_ROOM.value % instance.creator_id, instance.pk)
+        account_conn.sadd(UserEnum.JOIN_GROUP.value % instance.creator_id, instance.pk)
         # 创建者加入创建的群聊
-        channel_conn.sadd(ChannelRoomEnum.ROOM_MEMBERS.value % instance.pk, instance.creator_id)
+        channel_conn.sadd(Room2GroupEnum.ROOM_MEMBERS.value % instance.pk, instance.creator_id)
         # 智能ai加入群聊/在线
-        channel_conn.sadd(ChannelRoomEnum.ROOM_MEMBERS.value % instance.pk, UserEnum.GPT_ID.value)
-        channel_conn.sadd(ChannelRoomEnum.ROOM_ONLINE_MEMBERS.value % instance.pk, UserEnum.GPT_ID.value)
+        channel_conn.sadd(Room2GroupEnum.ROOM_MEMBERS.value % instance.pk, UserEnum.GPT_ID.value)
+        channel_conn.sadd(Room2GroupEnum.ROOM_ONLINE_MEMBERS.value % instance.pk, UserEnum.GPT_ID.value)
         return instance
 
 
@@ -146,7 +146,7 @@ class JoinChatRoomSerializers(serializers.ModelSerializer):
     name = serializers.CharField(read_only=True)
 
     class Meta:
-        model = Room
+        model = GroupRoom
         fields = ['id', 'createTime', 'creator', 'password', 'desc', 'type', 'isPublic', 'name']
 
     def get_creator(self, obj):
@@ -159,7 +159,7 @@ class JoinChatRoomSerializers(serializers.ModelSerializer):
 
     def validated_id(self, obj):
         # 判断房间是否存在
-        if not channel_conn.sismember(ChannelRoomEnum.ROOMS.value, obj):
+        if not channel_conn.sismember(Room2GroupEnum.ROOMS.value, obj):
             raise serializers.ValidationError("房间不存在")
         return obj
 
@@ -171,9 +171,9 @@ class JoinChatRoomSerializers(serializers.ModelSerializer):
         roomID = attr.get("id")
         password = attr.get("password")
         try:
-            room = Room.objects.get(pk=roomID)
+            room = GroupRoom.objects.get(pk=roomID)
             attr['roomObj'] = room
-        except Room.DoesNotExist:
+        except GroupRoom.DoesNotExist:
             raise serializers.ValidationError("房间不存在")
         # 房间并不是公开的且密码错误
         if not room.isPublic and room.password != password:
@@ -184,8 +184,34 @@ class JoinChatRoomSerializers(serializers.ModelSerializer):
         user_id = self.context['request'].user.pk
         room_id = validated_data['id']
         # 放入用户的加入群聊集合里
-        account_conn.sadd(UserEnum.JOIN_ROOM.value % user_id, room_id)
+        account_conn.sadd(UserEnum.JOIN_GROUP.value % user_id, room_id)
         # 用户进入群聊
-        channel_conn.sadd(ChannelRoomEnum.ROOM_MEMBERS.value % room_id,
+        channel_conn.sadd(Room2GroupEnum.ROOM_MEMBERS.value % room_id,
                           user_id)
         return validated_data['roomObj']
+
+
+class ValidRoomSerializers(serializers.Serializer):
+    page = serializers.IntegerField(
+        required=False, default=1, error_messages={
+            'required': '无效的页码', 'invalid': '无效的页码',
+        })
+    room = serializers.IntegerField(
+        required=True,
+        error_messages={
+            'required': '无效的房间号', 'invalid': '无效的房间号',
+        })
+
+    def validate_room(self, value):
+        request = self.context['request']
+        # 房间是否存在
+        if not channel_conn.sismember(Room2GroupEnum.ROOMS.value, value):
+            raise NotFound(ErrorMessageConst.ROOM_NOT_EXIST.value)
+        # 未登录用户只能查看大群聊
+        if request.user is None and value != Room2GroupEnum.DEFAULT_ROOM.value:
+            # 登录
+            raise PermissionDenied(ErrorMessageConst.USER_NOT_LOGIN.value)
+        # 登录用户是否加入了该群聊
+        if not account_conn.sismember(UserEnum.JOIN_GROUP.value % request.user.pk, value):
+            raise NotFound(ErrorMessageConst.USER_NOT_IN_ROOM.value)
+        return value

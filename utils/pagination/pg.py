@@ -3,7 +3,7 @@ from collections import OrderedDict
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
-from enums.const import ChannelRoomEnum
+from enums.const import Room2GroupEnum
 
 
 class RecordPager(PageNumberPagination):
@@ -17,6 +17,6 @@ class RecordPager(PageNumberPagination):
         :return:
         """
         return Response(OrderedDict([
-            ('count', self.page.paginator.count + ChannelRoomEnum.ROOM_MESSAGE_MAX.value),  # 总页数sql+redis的数量
+            ('count', self.page.paginator.count + Room2GroupEnum.ROOM_RECORD_MAX.value),  # 总页数sql+redis的数量
             ('results', data)
         ]))
