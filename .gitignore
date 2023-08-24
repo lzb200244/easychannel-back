@@ -1,0 +1,10 @@
+.idea
+.easychannel.env
+easychannel.sql
+sensitives.txt
+
+logs
+tests
+venv
+__pycache__/
+migrations/
