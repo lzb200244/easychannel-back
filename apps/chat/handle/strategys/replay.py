@@ -63,6 +63,7 @@ class ReplayStrategy(Strategy):
                 'content': replay.content,
                 'userID': replay.user.pk,
                 'username': replay.user.name,
+                'msgID': replay.pk
             }
         elif replay.type in [MessageTypeEnum.IMAGE.value, MessageTypeEnum.FILE.value]:
             msg = {
@@ -74,6 +75,7 @@ class ReplayStrategy(Strategy):
                 },
                 'userID': replay.user.pk,
                 'username': replay.user.name,
+                'msgID': replay.pk
 
             }
 

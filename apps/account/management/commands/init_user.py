@@ -68,6 +68,7 @@ class Command(BaseCommand):
                 is_superuser=True,
                 avatar='https://wpimg.wallstcn.com/f778738c-e4f8-4870-b634-56703b4acafe.gif',
             )
+            # https://p9-passport.byteacctimg.com/img/user-avatar/e9208e27ca98452d1e944fc4f0ce3d4c~40x40.awebp
             logger.info('初始化admin成功!')
         # 3. 初始化勋章列表
         if Medal.objects.count() == 0:

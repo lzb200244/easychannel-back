@@ -26,9 +26,9 @@ class Room2GroupEnum(Enum):
 
               if current_length >= maxlen 
               then
-                  redis.call('lpop', key)
+                  redis.call('rpop', key)
               end
-              redis.call('rpush', key, value)
+              redis.call('lpush', key, value)
            """
 
 

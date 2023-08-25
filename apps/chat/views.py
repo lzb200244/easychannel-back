@@ -105,16 +105,20 @@ class RecordAPIView(ListModelMixin, GenericAPIView):
         :return:
         """
         # 1. 获取队头（最早加入的元素，处于最顶的
-        top = channel_conn.lindex(self.room_key, 0)
+        top = channel_conn.lindex(self.room_key, -1)
         if top is None:
             # redis并没有数据,说明用户是非法的操作,读取了最大的页码,且是当该聊天群根本没有记录的时候
             # 非法操作
             raise NotFound(ErrorMessageConst.PAGE_NOT_EXIST.value)
         j_top: BaseRecord = json.loads(top)
-
         message: BaseMessage = j_top['message']
+
         # 2. 返回历史记录
-        query = self.queryset.filter(id__lt=message['msgID'], room__id=j_top['roomID']).order_by('pk')
+        query=self.queryset.filter(
+            id__lt=message['msgID'],
+            room__id=j_top['roomID']
+        ).order_by('-pk')
+
         return query
 
 

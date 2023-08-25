@@ -23,6 +23,7 @@ logger = logging.getLogger("account")
 channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
 account_conn: redis.Redis = get_redis_connection(AccountConfig.name)
 
+
 class RegisterAPIView(CreateModelMixin, GenericAPIView):
     queryset = UserInfo.objects.all()
     serializer_class = AccountSerializers
