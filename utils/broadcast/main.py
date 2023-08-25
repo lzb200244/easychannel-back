@@ -10,10 +10,8 @@ from channels.layers import get_channel_layer
 
 from asgiref.sync import async_to_sync
 
-from typing import NoReturn
 
-
-def broadcast(room: str, data: str) -> NoReturn:
+def broadcast(room: str, data: str) -> None:
     channel = get_channel_layer()
     async_to_sync(channel.group_send)(
         room,

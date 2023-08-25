@@ -12,10 +12,7 @@ ex:自定义jwt认证类
 """
 
 
-
-
-
-def decode_jwt(token: str):
+def decode_jwt(token: str) -> dict:
     salt = settings.JWT_CONF.get('salt', settings.SECRET_KEY)  # 盐
     typ = settings.JWT_CONF.get('typ', 'HS256')  #
     payload = jwt.decode(

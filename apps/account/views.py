@@ -51,14 +51,12 @@ class LoginAPIView(ListModelMixin, GenericAPIView):
             logger.warning(f"{ser_obj.validated_data['username']}：用户不存在或密码错误")
             raise AuthenticationFailed(ErrorMessageConst.USERNAME_OR_PASSWORD_ERROR.value)
         # 生成凭证
-
         return self.serializer_class(user, many=False)
 
     def post(self, request):
         """
         登录的接口
         :param request: username，password
-        :return:
         """
         return APIResponse(self.list(request).data)
 
@@ -107,6 +105,7 @@ class MedalsAPIView(ListModelMixin, GenericAPIView):
     permission_classes = [CustomIsAuthenticated]
 
     def get(self, request):
+        """获取用户勋章信息"""
         return APIResponse(self.list(request).data)
 
 

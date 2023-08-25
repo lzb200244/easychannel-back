@@ -27,4 +27,3 @@ class PushTypeEnum(IntEnum):
         return str(self.value)
 
 
-print(int(MessageTypeEnum.TEXT))

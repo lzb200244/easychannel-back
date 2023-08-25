@@ -32,7 +32,7 @@ class BaiDuGPT:
         self.secret_key = os.getenv('BAIDU_API_SECRET', SECRET_KEY)
         self.model = model
 
-    def get_access_token(self):
+    def get_access_token(self) -> str:
         """
         使用 AK，SK 生成鉴权签名（Access Token）
         :return: access_token，或是None(如果错误)
@@ -60,9 +60,7 @@ class BaiDuGPT:
 
         aso = response.text
         results = json.loads(aso)
-        # print(results)
         try:
-
             """
                         
                 {
@@ -79,7 +77,6 @@ class BaiDuGPT:
                   }
                 }
             """
-            # print(results)
             result = results['result']
             total_tokens = results['usage']['total_tokens']
         except Exception as e:

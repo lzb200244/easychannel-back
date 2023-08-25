@@ -1,3 +1,5 @@
+import random
+import string
 from enum import Enum
 
 
@@ -54,6 +56,11 @@ class Room2PrivateEnum(Enum):
 class UserEnum(Enum):
     # =========================================================== ai聊天助手的id
     GPT_ID = 1
+    GPT_NAME = "AI慧聊"
+    GPT_PWD = ''.join(random.choices(string.ascii_letters + string.digits, k=16))
+    GPT_DESC = '我是一个ai助手,你可以让我帮你做点什么。例如:写代码、聊天。'
+    GPT_EMAIL = 'gpt@qq.com'
+    GPT_AVATAR = 'https://chat-default-source-1311013567.cos.ap-nanjing.myqcloud.com/default-ai-avatar.svg'
     # =========================================================== 我加入的群聊
     JOIN_GROUP = "user:%s:groups"  # => set
     # =========================================================== 我加入的私聊
@@ -73,7 +80,7 @@ class MedalEnum(Enum):
     SOCIAL = 4
 
     @property
-    def title(self):
+    def title(self) -> str:
         mp = {
             1: '点赞达人',
             2: '解题砖家',

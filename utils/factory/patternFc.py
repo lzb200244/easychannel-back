@@ -12,14 +12,14 @@ from abc import ABCMeta, abstractmethod
 class PatternFactory(metaclass=ABCMeta):
 
     @abstractmethod
-    def compile(self): pass
+    def compile(self) -> re.Pattern: pass
 
 
 class EmailPattern(PatternFactory):
     """邮箱校验"""
 
     @property
-    def compile(self):
+    def compile(self) -> re.Pattern:
         return re.compile(r'^\w+([-+.]\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*$')
 
 
@@ -27,13 +27,13 @@ class PhonePattern(PatternFactory):
     """号码校验"""
 
     @property
-    def compile(self):
+    def compile(self) -> re.Pattern:
         return re.compile(r"^(13[0-9]|14[5|7]|15[0|1|2|3|5|6|7|8|9]|18[0|1|2|3|5|6|7|8|9])\d{8}$")
 
 
 class DomainPatter(PatternFactory):
     @property
-    def compile(self):
+    def compile(self) -> re.Pattern:
         return re.compile(r'(?P<domain>[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+\.?)')
 
 
@@ -41,7 +41,7 @@ class HeaderPattern(PatternFactory):
     """请求头校验"""
 
     @property
-    def compile(self):
+    def compile(self) -> re.Pattern:
         return re.compile(r"^code-miner-[12345]\d{13}[12345]$")
 
 
@@ -49,7 +49,7 @@ class PWDPattern(PatternFactory):
     """请求头校验"""
 
     @property
-    def compile(self):
+    def compile(self) -> re.Pattern:
         return re.compile(r"^(?:(?=.*[a-z])(?=.*[0-9])).{6,12}$")
 
 

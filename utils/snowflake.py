@@ -18,7 +18,7 @@ class SimpleSnowflake:
     def _get_timestamp(self):
         return int(time.time())  # 秒级时间戳
 
-    def generate_id(self):
+    def generate_id(self) -> int:
         timestamp = self._get_timestamp()
 
         if timestamp < self.last_timestamp:

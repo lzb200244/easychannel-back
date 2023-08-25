@@ -57,7 +57,7 @@ class Command(BaseCommand):
         with open(r"sensitives.txt", "r", encoding="utf-8") as f:
             for line in f:
                 sensitive_words.append(line.strip())
-        tree_prefix.write_sensitive_to_mysql(sensitive_words)
+        # tree_prefix.write_sensitive_to_mysql(sensitive_words)
 
         # 3. 初始化mq
         init_create()

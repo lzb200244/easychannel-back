@@ -8,7 +8,6 @@
 import logging
 
 from django.core.management import BaseCommand
-
 from apps.account.models import UserInfo, Medal
 from enums.const import UserEnum, MedalEnum
 
@@ -51,11 +50,12 @@ class Command(BaseCommand):
         if not UserInfo.objects.filter(id=UserEnum.GPT_ID.value).exists():
             UserInfo.objects.create_user(
                 id=UserEnum.GPT_ID.value,
-                username='gpt',
-                name='AI慧聊',
-                password='lzb200244',
-                email='gpt@qq.com', desc="我是一个ai助手,你可以让我帮你做点什么。例如:写代码、聊天。",
-                avatar='https://chat-default-source-1311013567.cos.ap-nanjing.myqcloud.com/default-ai-avatar.svg'
+                username=UserEnum.GPT_NAME.value,
+                name=UserEnum.GPT_NAME.value,
+                password=UserEnum.GPT_PWD.value,
+                email=UserEnum.GPT_EMAIL.value,
+                desc=UserEnum.GPT_DESC.value,
+                avatar=UserEnum.GPT_AVATAR.value
             )
             logger.info('初始化ai成功!')
         # 2. 初始化admin

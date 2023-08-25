@@ -9,7 +9,7 @@
 
 def cal_file_size(size: int) -> float:
     """计算文件大小"""
-    if size < 1024 :
+    if size < 1024:
         return size
-    else:
-        return round(size / 1024 , 2)
+
+    return round(size / 1024, 2)

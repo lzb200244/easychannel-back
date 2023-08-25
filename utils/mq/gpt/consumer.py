@@ -28,7 +28,7 @@ channel_conn: redis.Redis = get_redis_connection(ChatConfig.name)
 logger = logging.getLogger('chat')
 
 
-def callback(ch, method, properties, body: bytes):
+def callback(ch, method, properties, body: bytes) -> None:
     try:
         message: GPTReplay = json.loads(body.decode('utf-8'))
         print(message)

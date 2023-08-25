@@ -23,7 +23,7 @@ class RabbitMQSingleton:
             cls._instance.init_connection()
         return cls._instance
 
-    def init_connection(self):
+    def init_connection(self) -> None:
         try:
             # 1. 构造连接property
             credentials = pika.PlainCredentials(os.getenv("RABBITMQ_DEFAULT_USER"), os.getenv("RABBITMQ_DEFAULT_PASS"))

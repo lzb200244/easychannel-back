@@ -29,7 +29,7 @@ class GPTReplay(TypedDict):
     question: Union[str, None]
 
 
-def send_message(message: GPTReplay):
+def send_message(message: GPTReplay) -> None:
     try:
 
         # 发布持久性消息

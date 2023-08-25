@@ -114,7 +114,7 @@ class RecordAPIView(ListModelMixin, GenericAPIView):
         message: BaseMessage = j_top['message']
 
         # 2. 返回历史记录
-        query=self.queryset.filter(
+        query = self.queryset.filter(
             id__lt=message['msgID'],
             room__id=j_top['roomID']
         ).order_by('-pk')

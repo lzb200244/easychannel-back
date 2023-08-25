@@ -1,7 +1,7 @@
 import re
 
 
-def decode(cookie_string: str):
+def decode(cookie_string: str) -> dict:
     """
     解析cookies参数
     :param cookie_string: 解析的cookie
