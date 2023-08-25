@@ -28,7 +28,9 @@ class FileMessage(BaseMessage):
     fileInfo: FileInfo
 
 
-Message = TextMessage | FileMessage
+from typing import Union
+
+Message = Union[TextMessage ,FileMessage]
 
 
 class MessageStatus(TypedDict):
@@ -58,7 +60,7 @@ class BaseUserItem(TypedDict):
 
 class BaseRecord(TypedDict):
     type: Union[PushTypeEnum, int]
-    message: BaseMessage | ReplayMessage | TextMessage | FileMessage | RecallMessage
+    message: Union[BaseMessage ,ReplayMessage , TextMessage , FileMessage , RecallMessage]
     user: BaseUserItem
     roomID: int
 
