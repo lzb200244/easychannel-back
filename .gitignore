@@ -1,6 +1,6 @@
 .idea
 .easychannel.env
-easychannel.sql
+#easychannel.sql
 sensitives.txt
 
 logs

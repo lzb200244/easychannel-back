@@ -10,14 +10,6 @@ from apps.chat.apps import ChatConfig
 BASE_DIR = BASE_DIR.parent
 # ##########################################channels配置
 ASGI_APPLICATION = "EasyChannel.asgi.application"
-# Channel内存管理
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels.layers.InMemoryChannelLayer"
-#     }
-# }
-
-#
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -53,6 +45,8 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "extensions.auth.jwtauthentication.JWTAuthentication"],
     'EXCEPTION_HANDLER': 'extensions.exceptions.custom_exception_handler',
+    'DEFAULT_SCHEMA_CLASS': 'rest_framework.schemas.coreapi.AutoSchema',
+
 }
 # #####################################################JWT配置
 JWT_CONF = {

@@ -6,7 +6,6 @@
 
 """
 import copy
-import time
 
 import redis
 from django_redis import get_redis_connection

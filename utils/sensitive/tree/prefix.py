@@ -1,7 +1,6 @@
 import script.__init__script
 
 from typing import List, Union
-import pymysql
 
 from django.db import models
 

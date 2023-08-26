@@ -11,8 +11,10 @@ from rest_framework.mixins import ListModelMixin, CreateModelMixin
 from apps.account.apps import AccountConfig
 from apps.account.models import UserInfo
 from apps.chat.apps import ChatConfig
-from apps.chat.ser import RecordSerializers, CreateChatRoomSerializers, OnlineSerializers, JoinChatRoomSerializers, \
+from apps.chat.ser import (
+    RecordSerializers, CreateChatRoomSerializers, OnlineSerializers, JoinChatRoomSerializers,
     ValidRoomSerializers
+)
 from apps.chat.serializers.message import MessageRecordSerializer
 from apps.chat.serializers.recall import RecallSerializers
 from apps.chat.serializers.thumb import ThumbSerializers
@@ -183,7 +185,7 @@ class ReceiveMessageAPIView(GenericAPIView):
     permission_classes = [CustomIsAuthenticated]
     serializer_class = MessageRecordSerializer
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request,):
         serializer = self.serializer_class(data=request.data, context={"request": request})
         # 1. 调用is_valid()进行校验
         serializer.is_valid(raise_exception=True)
